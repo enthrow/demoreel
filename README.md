@@ -21,17 +21,18 @@ in the project root:
 $ python3 -m venv venv # optional: create a virtual environment
 $ . venv/bin/activate  # you can also activate a different one obviously
 $ pip install maturin
-$ maturin develop --release  # this should automatically build and install a wheel for you
+$ maturin build --release  # this will automatically build a wheel for you
 ```
 
 This will build a wheel in the `targets/` subdirectory that you can `pip
-install` in other virtual environments. Or if you prefer, you can just run your
-application code in this source tree. Go ahead. I'm not the file police.
+install` in other virtual environments. Or if you prefer, you can just install
+and run your application code in this source tree. Go ahead. I'm not the file police.
 
 ## Python Usage
 
 ```py
 import demoreel
+import polars as pl
 
 demo_path = REPLACE_ME
 with open(demo_path, "rb") as istrm:
