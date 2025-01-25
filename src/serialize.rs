@@ -1,13 +1,13 @@
-use serde_arrow::schema::{SchemaLike, TracingOptions};
+use arrow::array::ArrayRef;
 use arrow::datatypes::FieldRef;
 use polars::prelude::DataFrame;
 use polars::series::Series;
-use arrow::array::ArrayRef;
 use pyo3::{
-    types::{PyDict, PyList, PyDictMethods},
-    IntoPy, PyObject, Python
+    types::{PyDict, PyDictMethods, PyList},
+    IntoPy, PyObject, Python,
 };
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_arrow::schema::{SchemaLike, TracingOptions};
 use serde_json_path::JsonPath;
 
 use crate::errors::*;
@@ -74,8 +74,8 @@ pub fn to_polars<T: Serialize + for<'de> Deserialize<'de>>(
 
     let mut series_vec = Vec::new();
     for (field, array) in fields.iter().zip(arrays) {
-        let series_name = field.name().as_str().into(); // Get column name
-        let series = Series::from_arrow_chunks(series_name, vec![array.into()])?; // Create Series from array
+        let series_name = field.name().as_str().into();
+        let series = Series::from_arrow_chunks(series_name, vec![array.into()])?;
         series_vec.push(series);
     }
 

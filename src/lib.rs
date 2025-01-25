@@ -8,19 +8,19 @@ pub mod tracer;
 use bitbuffer::BitRead;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
+use pythonize::pythonize;
 use serde_arrow::schema::TracingOptions;
 use tf_demo_parser::demo::{header::Header, parser::DemoParser};
 use tf_demo_parser::Demo;
 use tracer::{Roster, Tracer, WithTick};
-use pythonize::pythonize;
 
 use errors::*;
 use serialize::to_polars;
 
 #[cfg(test)]
 mod tests {
-    use crate::tracer::PacketStream;
     use super::*;
+    use crate::tracer::PacketStream;
     const BORNEO: &'static [u8] = include_bytes!("../demos/Round_1_Map_1_Borneo.dem");
     const FLAG_UPDATES: &'static [u8] = include_bytes!("../demos/flag_updates.dem");
     #[test]
@@ -79,7 +79,7 @@ fn roster<'py>(py: Python<'py>, buffer: &[u8]) -> Result<Option<PyDataFrame>> {
 }
 
 /// see if the server in the header is formatted like a hostname to determine if this is a pov demo
-/// This isn't foolproof and could be combined with checking header.nick against roster and for 
+/// This isn't foolproof and could be combined with checking header.nick against roster and for
 /// the presence of user commands if we want to account for intentional misrepresentation of this by players.
 /// returns a bool.
 #[pyfunction]
@@ -103,7 +103,6 @@ fn header<'py>(py: Python<'py>, buffer: &[u8]) -> Result<Option<PyObject>> {
     Ok(Some(pythonize(py, &header).unwrap().into()))
 }
 
-
 /// Trace all players, states, and instances of damage inflicted within a
 /// demo file, yielding the result as a set of polars dataframes.
 #[pyfunction]
@@ -120,7 +119,7 @@ fn dtrace<'py>(py: Python<'py>, buffer: &[u8]) -> Result<DTrace> {
         let states = WithTick::to_polars(dtrace.states.into_iter(), Some(tropt.clone()))?;
         let events = WithTick::to_polars(dtrace.events.into_iter(), Some(tropt.clone()))?;
         let bounds = WithTick::to_polars(dtrace.bounds.into_iter(), Some(tropt.clone()))?;
-        let roster = to_polars(dtrace.roster.roster.as_slice(), Some(tropt.clone()))?;  
+        let roster = to_polars(dtrace.roster.roster.as_slice(), Some(tropt.clone()))?;
         Ok((
             header,
             states.map(PyDataFrame),

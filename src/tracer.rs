@@ -4,7 +4,7 @@ use crate::serialize::to_polars;
 use bitbuffer::BitRead;
 use itertools::Itertools;
 use polars::prelude::*;
-use serde::{ Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_arrow::schema::TracingOptions;
 use tf_demo_parser::demo::data::userinfo::PlayerInfo;
 use tf_demo_parser::demo::data::userinfo::UserInfo;
@@ -145,7 +145,6 @@ impl From<Player> for Snapshot {
     }
 }
 
-
 #[derive(Serialize, Clone)]
 pub struct WithTick<T: Serialize + for<'de> Deserialize<'de> + Clone> {
     pub inner: T,
@@ -177,7 +176,6 @@ impl Roster {
         let user_ids = Vec::new();
         Self { roster, user_ids }
     }
-
 }
 
 impl MessageHandler for Roster {
