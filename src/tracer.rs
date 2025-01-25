@@ -19,7 +19,6 @@ use tf_demo_parser::demo::parser::gamestateanalyser::{
 };
 use tf_demo_parser::demo::parser::handler::BorrowMessageHandler;
 use tf_demo_parser::demo::parser::{DemoHandler, MessageHandler, NullHandler, RawPacketStream};
-use tf_demo_parser::demo::vector::Vector;
 use tf_demo_parser::{Demo, MessageType};
 
 pub struct PacketStream<'s, 'h> {
@@ -91,7 +90,10 @@ impl From<PlayerInfo> for Profile {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Snapshot {
-    pub position: Vector,
+    pub user_id: Option<u16>,
+    pub position_x: f32,
+    pub position_y: f32,
+    pub position_z: f32,
     pub health: u16,
     pub max_health: u16,
     pub class: String,
@@ -99,7 +101,6 @@ pub struct Snapshot {
     pub view_angle: f32,
     pub pitch_angle: f32,
     pub state: String,
-    pub user_id: Option<u16>,
     pub charge: u8,
     pub in_pvs: bool,
     pub simtime: u16,
@@ -108,7 +109,9 @@ pub struct Snapshot {
 impl From<Player> for Snapshot {
     fn from(value: Player) -> Self {
         Self {
-            position: value.position,
+            position_x: value.position.x,
+            position_y: value.position.y,
+            position_z: value.position.z,
             health: value.health,
             max_health: value.max_health,
             class: match value.class {
