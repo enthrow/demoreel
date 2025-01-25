@@ -4,7 +4,7 @@ use crate::serialize::to_polars;
 use bitbuffer::BitRead;
 use itertools::Itertools;
 use polars::prelude::*;
-use serde::Serialize;
+use serde::{ Serialize, Deserialize};
 use serde_arrow::schema::TracingOptions;
 use tf_demo_parser::demo::data::userinfo::PlayerInfo;
 use tf_demo_parser::demo::data::userinfo::UserInfo;
@@ -58,7 +58,7 @@ impl<'s, 'h> Iterator for PacketStream<'s, 'h> {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
     pub name: String,
     pub user_id: UserId,
@@ -89,16 +89,16 @@ impl From<PlayerInfo> for Profile {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Snapshot {
     pub position: Vector,
     pub health: u16,
     pub max_health: u16,
-    pub class: &'static str,
-    pub team: &'static str,
+    pub class: String,
+    pub team: String,
     pub view_angle: f32,
     pub pitch_angle: f32,
-    pub state: &'static str,
+    pub state: String,
     pub user_id: Option<u16>,
     pub charge: u8,
     pub in_pvs: bool,
@@ -112,30 +112,30 @@ impl From<Player> for Snapshot {
             health: value.health,
             max_health: value.max_health,
             class: match value.class {
-                Class::Scout => "scout",
-                Class::Soldier => "soldier",
-                Class::Pyro => "pyro",
-                Class::Demoman => "demoman",
-                Class::Heavy => "heavy",
-                Class::Engineer => "engineer",
-                Class::Medic => "medic",
-                Class::Sniper => "sniper",
-                Class::Spy => "spy",
-                Class::Other => "other",
+                Class::Scout => "scout".to_string(),
+                Class::Soldier => "soldier".to_string(),
+                Class::Pyro => "pyro".to_string(),
+                Class::Demoman => "demoman".to_string(),
+                Class::Heavy => "heavy".to_string(),
+                Class::Engineer => "engineer".to_string(),
+                Class::Medic => "medic".to_string(),
+                Class::Sniper => "sniper".to_string(),
+                Class::Spy => "spy".to_string(),
+                Class::Other => "other".to_string(),
             },
             team: match value.team {
-                Team::Blue => "blu",
-                Team::Red => "red",
-                Team::Spectator => "spectator",
-                Team::Other => "other",
+                Team::Blue => "blu".to_string(),
+                Team::Red => "red".to_string(),
+                Team::Spectator => "spectator".to_string(),
+                Team::Other => "other".to_string(),
             },
             view_angle: value.view_angle,
             pitch_angle: value.pitch_angle,
             state: match value.state {
-                PlayerState::Alive => "alive",
-                PlayerState::Death => "death",
-                PlayerState::Dying => "dying",
-                PlayerState::Respawnable => "queue",
+                PlayerState::Alive => "alive".to_string(),
+                PlayerState::Death => "death".to_string(),
+                PlayerState::Dying => "dying".to_string(),
+                PlayerState::Respawnable => "queue".to_string(),
             },
             user_id: value.info.map(|info| info.user_id.into()),
             charge: value.charge,
@@ -145,13 +145,13 @@ impl From<Player> for Snapshot {
     }
 }
 
+
 #[derive(Serialize, Clone)]
-pub struct WithTick<T: Serialize + Clone> {
+pub struct WithTick<T: Serialize + for<'de> Deserialize<'de> + Clone> {
     pub inner: T,
     pub tick: u32,
 }
-
-impl<T: Serialize + Clone> WithTick<T> {
+impl<T: Serialize + for<'de> Deserialize<'de> + Clone> WithTick<T> {
     pub fn to_polars(
         items: impl Iterator<Item = WithTick<T>>,
         tropt: Option<TracingOptions>,
@@ -160,13 +160,12 @@ impl<T: Serialize + Clone> WithTick<T> {
             items.map(|WithTick { tick, inner }| (tick, inner)).unzip();
         Ok(to_polars(inner.as_slice(), tropt)?
             .map(|mut frame| {
-                let ticks = Series::new("tick", ticks);
+                let ticks = Series::new("tick".into(), ticks);
                 frame.with_column(ticks).map(std::mem::take)
             })
             .transpose()?)
     }
 }
-
 pub struct Roster {
     pub roster: Vec<Profile>,
     user_ids: Vec<UserId>,
@@ -178,6 +177,7 @@ impl Roster {
         let user_ids = Vec::new();
         Self { roster, user_ids }
     }
+
 }
 
 impl MessageHandler for Roster {

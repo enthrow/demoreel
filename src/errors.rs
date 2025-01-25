@@ -13,11 +13,10 @@ error_chain! {
         Io(std::io::Error);
         Json(serde_json::Error);
         ArrowSerialization(serde_arrow::Error);
-        Arrow(arrow2::error::Error);
+        // Arrow(arrow2::error::Error);
         PathParse(serde_json_path::ParseError);
         PathMatch(serde_json_path::AtMostOneError);
-        Polars(polars::error::PolarsError);
-    }
+        Polars(polars::error::PolarsError);    }
 }
 
 use pyo3::{exceptions::PyValueError, PyErr};

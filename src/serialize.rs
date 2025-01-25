@@ -1,12 +1,13 @@
-use arrow2::chunk::Chunk;
+use serde_arrow::schema::{SchemaLike, TracingOptions};
+use arrow::datatypes::FieldRef;
 use polars::prelude::DataFrame;
+use polars::series::Series;
+use arrow::array::ArrayRef;
 use pyo3::{
-    types::{PyDict, PyList},
-    IntoPy, PyObject, Python,
+    types::{PyDict, PyList, PyDictMethods},
+    IntoPy, PyObject, Python
 };
-use serde::Serialize;
-use serde_arrow::arrow2::{serialize_into_arrays, serialize_into_fields};
-use serde_arrow::schema::TracingOptions;
+use serde::{Serialize, Deserialize};
 use serde_json_path::JsonPath;
 
 use crate::errors::*;
@@ -15,7 +16,7 @@ pub fn json_to_py<'py>(py: Python<'py>, v: &serde_json::Value) -> Result<PyObjec
     use serde_json::Value;
     match v {
         Value::Object(obj) => {
-            let dict = PyDict::new(py);
+            let dict = PyDict::new_bound(py);
             for (k, v) in obj.into_iter() {
                 dict.set_item(k, json_to_py(py, v)?)?;
             }
@@ -23,7 +24,7 @@ pub fn json_to_py<'py>(py: Python<'py>, v: &serde_json::Value) -> Result<PyObjec
         }
         Value::Array(arr) => {
             let istrm: Result<Vec<_>> = arr.into_iter().map(|x| json_to_py(py, x)).collect();
-            Ok(PyList::new(py, istrm?).into())
+            Ok(PyList::new_bound(py, istrm?).into())
         }
         Value::Null => Ok(py.None()),
         Value::Bool(p) => Ok(p.into_py(py)),
@@ -60,18 +61,24 @@ pub fn json_match<'v>(
         Some(payload.clone())
     }
 }
-
-pub fn to_polars<T: Serialize>(
+pub fn to_polars<T: Serialize + for<'de> Deserialize<'de>>(
     values: &[T],
     config: Option<TracingOptions>,
 ) -> Result<Option<DataFrame>> {
-    if values.len() > 0 {
-        let config = config.unwrap_or_else(TracingOptions::default);
-        let fields = serialize_into_fields(values, config)?;
-        let array = serialize_into_arrays(fields.as_slice(), values)?;
-        let chunk = Chunk::try_new(array)?;
-        Ok(Some(DataFrame::try_from((chunk, fields.as_ref()))?))
-    } else {
-        Ok(None)
+    if values.is_empty() {
+        return Ok(None);
     }
+    let tracing_options = config.unwrap_or_else(TracingOptions::default);
+    let fields = Vec::<FieldRef>::from_type::<T>(tracing_options)?;
+    let arrays: Vec<ArrayRef> = serde_arrow::to_arrow(&fields, values)?;
+
+    let mut series_vec = Vec::new();
+    for (field, array) in fields.iter().zip(arrays) {
+        let series_name = field.name().as_str().into(); // Get column name
+        let series = Series::from_arrow_chunks(series_name, vec![array.into()])?; // Create Series from array
+        series_vec.push(series);
+    }
+
+    let df: polars::prelude::DataFrame = DataFrame::new(series_vec)?;
+    Ok(Some(df))
 }
