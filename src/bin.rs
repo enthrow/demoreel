@@ -1,3 +1,7 @@
+// I managed to break this somewhere, probably pyo3 lifetime stuff.
+// it feels out of scope for the project in general, but I will take a crack at restoring
+// functionality at some point. If the maintainer isn't using it either I probably want to just purge
+// and maintian a smaller scope for the project as a whole. Don't be suprised when this doesn't compile.
 use clap::Parser;
 
 use demoreel::errors::Result;
