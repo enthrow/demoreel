@@ -34,7 +34,7 @@ pub fn json_to_py<'py>(py: Python<'py>, v: &serde_json::Value) -> Result<PyObjec
             } else if let Some(x) = n.as_f64() {
                 Ok(x.into_py(py))
             } else {
-                Err(Error::from(ErrorKind::InvalidNumber(n.clone())))
+                Err(Error::InvalidNumber(n.clone()))
             }
         }
         Value::String(s) => Ok(s.into_py(py)),
